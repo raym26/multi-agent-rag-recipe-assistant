@@ -1,32 +1,54 @@
+# Step 1: Create/update .gitignore to exclude virtual environments and large files
+echo "# Virtual environments
+.venv/
+venv/
+env/
+fresh_env/
+*.dylib
+*.so
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyTorch models (if any)
+*.pth
+*.pt
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
 # Environment variables
 .env
 .env.local
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-venv/
-env/
-
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
+*.swo
 
 # OS
 .DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Database
-*.db
-*.sqlite3
-
-#utility files
-check_embeddings.py
-cleanup_embeddings.py
-check_phi.py
+Thumbs.db" > .gitignore
