@@ -1,5 +1,4 @@
-# Step 1: Create/update .gitignore to exclude virtual environments and large files
-echo "# Virtual environments
+# Virtual environments
 .venv/
 venv/
 env/
@@ -51,4 +50,11 @@ wheels/
 
 # OS
 .DS_Store
-Thumbs.db" > .gitignore
+Thumbs.db
+
+# Streamlit
+.streamlit/
+
+
+check_embeddings.py
+cleanup_embeddings.py

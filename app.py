@@ -13,8 +13,62 @@ import logging
 
 logging.getLogger().setLevel(logging.WARNING)  # Set root logger level to WARNING
 
-# Page configuration
-st.set_page_config(page_title="📚 Recipe PDF Assistant", layout="wide")
+# Page configuration with clean layout
+st.set_page_config(
+    page_title="📚 Recipe PDF Assistant",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Custom CSS for clean, above-the-fold sidebar layout
+st.markdown("""
+<style>
+    /* Remove top padding for more space */
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0rem;
+    }
+
+    /* Compact sidebar */
+    .css-1d391kg {
+        padding-top: 1rem;
+    }
+
+    /* Remove extra spacing from form elements */
+    .stTextInput > div > div {
+        margin-bottom: 0.5rem;
+    }
+
+    .stButton > button {
+        width: 100%;
+        margin-top: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Compact headers */
+    .sidebar .element-container h2 {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 1.2rem;
+    }
+
+    /* Hide streamlit branding for cleaner look */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+
+    /* Compact quick start buttons */
+    .stButton button {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    /* Compact divider */
+    hr {
+        margin: 1rem 0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("📖 Cookbook PDF Reader and Assistant")
 
 # Load environment variables
@@ -72,11 +126,18 @@ if 'pdf_url' not in st.session_state:
     st.session_state.assistant_initialized = False
     st.session_state.cookbook_description = None
 
-# Sidebar configuration
+# Compact Sidebar configuration - everything above the fold
 with st.sidebar:
-    # PDF Input Section
-    st.header("📁 Document Setup")
-    pdf_url = st.text_input("Cookbook PDF URL", value=st.session_state.pdf_url, placeholder="Enter PDF URL here...")
+    st.title("📚 Recipe Assistant")
+
+    # PDF Input Section - compact
+    st.markdown("### 📁 Document Setup")
+    pdf_url = st.text_input(
+        "Cookbook PDF URL",
+        value=st.session_state.pdf_url,
+        placeholder="Enter PDF URL here...",
+        label_visibility="collapsed"
+    )
 
     load_clicked = st.button("📥 Load PDF", type="primary", use_container_width=True)
 
@@ -84,7 +145,16 @@ with st.sidebar:
         # Auto-generate collection name from PDF URL
         url_hash = hashlib.md5(pdf_url.encode()).hexdigest()[:12]
         filename = pdf_url.split('/')[-1].replace('.pdf', '').replace(' ', '_')[:20]
-        auto_collection_name = f"pdf_{filename}_{url_hash}"
+
+        # Add timestamp if force reload is enabled
+        force_reload = st.session_state.get('force_reload', False)
+        if force_reload:
+            import time
+
+            timestamp = int(time.time())
+            auto_collection_name = f"pdf_{filename}_{url_hash}_{timestamp}"
+        else:
+            auto_collection_name = f"pdf_{filename}_{url_hash}"
 
         st.session_state.update({
             "pdf_url": pdf_url,
@@ -93,22 +163,63 @@ with st.sidebar:
             "messages": [],
             "run_id": None,
             "assistant_initialized": False,
-            "start_new": False,
+            "start_new": force_reload,  # Use force_reload flag
             "cookbook_description": None,  # Reset description when loading new PDF
         })
         st.success("✅ PDF loaded successfully!")
 
-    # Help Section
-    st.header("ℹ️ How to Use")
-    st.markdown("""
-    1. **Paste** a PDF URL above
-    2. **Click** 'Load PDF' to process  
-    3. **Ask** questions about recipes
-    """)
+    # Document Status Section - compact
+    st.markdown("### 📄 Current Cookbook")
+    if st.session_state.get("pdf_url"):
+        # Use cached description or generate new one
+        if st.session_state.get("cookbook_description"):
+            description = st.session_state.cookbook_description
+        else:
+            # Try to get description from assistant if available
+            if st.session_state.get("assistant_initialized") and 'assistant' in locals():
+                description = get_cookbook_description(st.session_state.pdf_url, assistant)
+                st.session_state.cookbook_description = description  # Cache it
+            else:
+                description = get_cookbook_description(st.session_state.pdf_url)
+        st.markdown(f"*{description}*")
 
-    # Session Info (only show if active)
+        # Show a small indicator if it's AI-generated vs fallback
+        if "This cookbook" in description and len(description) < 100:
+            st.caption("🤖 AI-generated description")
+        else:
+            st.caption("📝 Filename-based description")
+    else:
+        st.markdown("*No cookbook loaded*")
+
+    # Advanced Options - in expander to save space
+    with st.expander("🔧 Advanced Options"):
+        force_reload = st.checkbox("🔄 Force reload (clear existing)", value=False)
+        if force_reload:
+            st.warning("⚠️ Will clear existing data for this PDF")
+
+        # Clear database button
+        if st.button("🗑️ Clear Database", help="Remove all stored data"):
+            st.session_state.clear()
+            st.success("Database cleared! Please reload your PDF.")
+
+    # Help Section
+    with st.expander("ℹ️ Quick Help"):
+        st.markdown("""
+        **How to use:**
+        1. **Paste** a PDF URL above
+        2. **Click** 'Load PDF' to process  
+        3. **Ask** questions about recipes
+
+        **Tips:**
+        - Try the quick start buttons below
+        - Ask about specific ingredients
+        - Request recipe modifications
+        - Use 'Force reload' if you get duplicate errors
+        """)
+
+    # Session Info - compact (only show if active)
     if st.session_state.get("run_id"):
-        st.caption(f"Session: {st.session_state.run_id[:8]}...")
+        st.caption(f"💬 Session: {st.session_state.run_id[:8]}...")
 
 
 def initialize_assistant():
@@ -138,7 +249,7 @@ def initialize_assistant():
         return assistant
 
 
-# Display example queries
+# Display example queries - compact layout
 st.subheader("💡 Quick Start")
 cols = st.columns(3)
 for i, query in enumerate(get_example_queries()):
@@ -154,9 +265,14 @@ st.divider()
 if st.session_state.pdf_url and not st.session_state.assistant_initialized:
     # Auto-initialize the assistant if we have a PDF
     assistant = initialize_assistant()
-    # Generate cookbook description once assistant is ready
-    if assistant and st.session_state.kb_loaded and not st.session_state.cookbook_description:
-        st.session_state.cookbook_description = get_cookbook_description(st.session_state.pdf_url, assistant)
+    # Generate cookbook description once assistant is ready - with error handling
+    if assistant and st.session_state.kb_loaded and not st.session_state.get("cookbook_description"):
+        try:
+            st.session_state.cookbook_description = get_cookbook_description(st.session_state.pdf_url, assistant)
+            st.sidebar.success("🤖 Generated AI description")
+        except Exception as e:
+            print(f"Failed to generate AI description: {e}")
+            st.session_state.cookbook_description = get_cookbook_description(st.session_state.pdf_url)
 elif st.session_state.assistant_initialized:
     # Recreate the assistant with the current settings
     assistant = PDFAssistant(
@@ -166,25 +282,15 @@ elif st.session_state.assistant_initialized:
         run_id=st.session_state.run_id
     )
     assistant.initialize_assistant()
-    # Generate description if we don't have one yet
-    if not st.session_state.cookbook_description and st.session_state.kb_loaded:
-        st.session_state.cookbook_description = get_cookbook_description(st.session_state.pdf_url, assistant)
+    # Generate description if we don't have one yet - with error handling
+    if not st.session_state.get("cookbook_description") and st.session_state.kb_loaded:
+        try:
+            st.session_state.cookbook_description = get_cookbook_description(st.session_state.pdf_url, assistant)
+        except Exception as e:
+            print(f"Failed to generate AI description: {e}")
+            st.session_state.cookbook_description = get_cookbook_description(st.session_state.pdf_url)
 else:
     assistant = None
-
-# Update sidebar with cookbook description
-with st.sidebar:
-    # Document Status Section
-    st.header("📄 Current Cookbook")
-    if st.session_state.get("pdf_url"):
-        # Use cached description or fallback
-        if st.session_state.cookbook_description:
-            description = st.session_state.cookbook_description
-        else:
-            description = get_cookbook_description(st.session_state.pdf_url)
-        st.markdown(f"**{description}**")
-    else:
-        st.markdown("No cookbook loaded")
 
 # Display chat messages
 for message in st.session_state.messages:
