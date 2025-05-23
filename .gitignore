@@ -58,3 +58,4 @@ Thumbs.db
 
 check_embeddings.py
 cleanup_embeddings.py
+check_phi.py
