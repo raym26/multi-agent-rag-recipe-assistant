@@ -1,0 +1,16 @@
+phidata==2.7.5
+typer
+duckduckgo-search
+fastapi
+uvicorn
+groq
+openai
+sqlalchemy
+pgvector
+psycopg[binary]
+pypdf
+protobuf==3.19.6
+streamlit
+requests
+sentence-transformers
+PyMuPDF
